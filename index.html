@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Tour Horizon — Bureaux à louer (démo 3D)</title>
+<meta name="description" content="Démo interactive : un immeuble de bureaux en 3D où l'on choisit un étage puis un bureau pour voir sa surface, son prix et sa disponibilité.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -77,6 +78,7 @@
   .count{font-size:13px;color:var(--ink2);display:flex;justify-content:space-between;align-items:center}
   .count b{color:var(--ink)}
   .count button{color:var(--accent);font-weight:600;font-size:12px}
+  .proposal{font-size:12px;line-height:1.45;color:#7a4b00;background:#fff6e0;border:1px solid #f3dfae;border-radius:10px;padding:9px 11px;margin-bottom:14px}
   .credit{margin-top:16px;padding-top:12px;border-top:1px solid var(--line);font-size:11.5px;color:var(--ink3);line-height:1.5}
   .credit a{color:var(--ink2)}
 
@@ -200,7 +202,7 @@
 <header class="topbar">
   <div class="brand glass">
     <div class="logo"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linejoin="round"><path d="M5 21V5l7-2v18M12 7l7 2v12M3 21h18M8 8v.01M8 12v.01M8 16v.01M15.5 12v.01M15.5 16v.01"/></svg></div>
-    <div><b>Tour Horizon</b><small>Bureaux à louer · Ivandry</small></div>
+    <div><b>Tour Horizon</b><small>Bureaux à louer · Antananarivo</small></div>
   </div>
   <nav class="crumbs glass" id="crumbs" aria-label="Fil d'Ariane"></nav>
   <button class="btn btn-primary topcta" id="topCta">Demander une visite</button>
@@ -209,7 +211,7 @@
 
 <aside class="info glass" id="info">
   <h1>Tour Horizon</h1>
-  <p class="addr">Ivandry, Antananarivo — immeuble fictif de démonstration</p>
+  <p class="addr">Antananarivo · R+7 · immeuble fictif de démonstration</p>
   <div class="kpis">
     <div class="kpi"><b id="kLevels">8</b><span>niveaux</span></div>
     <div class="kpi"><b id="kUnits">–</b><span>bureaux</span></div>
@@ -275,18 +277,18 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 const BUILDING = {
   name: 'Tour Horizon',
   levels: 8,                 // RDC + 7 étages
-  width: 32, depth: 20,      // emprise d'un plateau (m)
-  floorHeight: 3.6,
-  core: { x0: 13, x1: 19, z0: 7, z1: 13 },   // ascenseurs + escaliers
-  services: ['Groupe électrogène', 'Fibre optique', 'Parking 120 places', 'Sécurité 24h/24', '3 ascenseurs', 'Climatisation centrale', 'Cafétéria']
+  width: 24, depth: 26,      // emprise d'un plateau (m)
+  floorHeight: 4.0,
+  core: { x0: 9, x1: 15, z0: 10, z1: 16 },   // noyau central : ascenseurs + escaliers
+  services: ['Groupe électrogène', 'Fibre optique', 'Parking', 'Sécurité 24h/24', 'Salle de sport', 'Cafétéria', 'Balcons et terrasses']
 };
 
 // Découpages possibles d'un plateau : [x0, z0, x1, z1] en mètres
 const LAYOUTS = {
-  A: [[0,0,10,7],[10,0,22,7],[22,0,32,7],[0,13,10,20],[10,13,22,20],[22,13,32,20]],
-  B: [[0,0,16,7],[16,0,32,7],[0,13,16,20],[16,13,32,20]],
-  E: [[0,0,13,7],[13,0,32,7],[0,13,19,20],[19,13,32,20]],
-  C: [[0,0,13,20],[19,0,32,20]]
+  A: [[0,0,8,9],[8,0,16,9],[16,0,24,9],[0,17,8,26],[8,17,16,26],[16,17,24,26]],
+  B: [[0,0,12,9],[12,0,24,9],[0,17,12,26],[12,17,24,26]],
+  E: [[0,0,9,9],[9,0,24,9],[0,17,15,26],[15,17,24,26]],
+  C: [[0,0,9,26],[15,0,24,26]]
 };
 const FLOOR_LAYOUT = {1:'A',2:'A',3:'E',4:'B',5:'E',6:'B',7:'C'};
 // a = disponible, r = réservé, l = loué
@@ -380,71 +382,141 @@ const plaza = new THREE.Mesh(new THREE.PlaneGeometry(W + 22, D + 22), new THREE.
 plaza.rotation.x = -Math.PI / 2; plaza.position.y = 0.02; plaza.receiveShadow = true; scene.add(plaza);
 const trunkG = new THREE.CylinderGeometry(0.25, 0.32, 2.2, 8), crownG = new THREE.IcosahedronGeometry(2.1, 1);
 const trunkM = new THREE.MeshStandardMaterial({ color: 0x8b7765 }), crownM = new THREE.MeshStandardMaterial({ color: 0x86b394, roughness: 0.9, flatShading: true });
-[[-25,-17],[-12,-17],[12,-17],[25,-17],[-25,17],[25,17],[-25,0],[25,0],[-12,17]].forEach(([x,z]) => {
+[[-22,-19],[22,-19],[-23,19],[24,8],[8,-21]].forEach(([x,z]) => {
   const t = new THREE.Mesh(trunkG, trunkM); t.position.set(x, 1.1, z); t.castShadow = true;
   const c = new THREE.Mesh(crownG, crownM); c.position.set(x, 3.4, z); c.castShadow = true;
   scene.add(t, c);
 });
+
+// Grand arbre et palmiers (ambiance de la perspective)
+{
+  const bigT = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.7, 5, 8), trunkM); bigT.position.set(-21, 2.5, 10); bigT.castShadow = true;
+  const bigC = new THREE.Mesh(new THREE.IcosahedronGeometry(5.2, 1), crownM); bigC.position.set(-21, 8, 10); bigC.scale.set(1.2, 0.85, 1.1); bigC.castShadow = true;
+  scene.add(bigT, bigC);
+  const palmTrunk = new THREE.CylinderGeometry(0.18, 0.28, 1, 6);
+  const leafG = new THREE.BoxGeometry(3.4, 0.06, 0.7); leafG.translate(1.7, 0, 0);
+  const leafM = new THREE.MeshStandardMaterial({ color: 0x5f9a6b, roughness: 0.9, side: THREE.DoubleSide });
+  [[17, 18, 8.5], [20, 15, 7], [-17, -17, 7.5]].forEach(([x, z, h]) => {
+    const t = new THREE.Mesh(palmTrunk, trunkM); t.scale.y = h; t.position.set(x, h / 2, z); t.castShadow = true; scene.add(t);
+    for (let k = 0; k < 8; k++) {
+      const l = new THREE.Mesh(leafG, leafM); l.position.set(x, h, z);
+      l.rotation.set(0, (k / 8) * Math.PI * 2, -0.45); l.castShadow = true; scene.add(l);
+    }
+  });
+}
 
 const bld = new THREE.Group();
 scene.add(bld);
 
 const GLASS_OP = 0.55, LINE_OP = 0.55;
 function glassColor(L) {
-  if (L === 0) return 0xc9d8e7;
+  if (L === 0) return 0xb9c9d6;
   const f = floors.find(f => f.level === L);
   const n = f.units.filter(u => u.status === 'available' && matches(u)).length;
-  return n > 0 ? 0x8db2d8 : 0xa3adb8;
+  return n > 0 ? 0x9cb6cc : 0xaab3bc;
 }
 
 function facadeLines(y0, y1) {
   const p = [];
-  for (let x = 0; x <= W; x += 4) p.push(x-W/2,y0,-D/2, x-W/2,y1,-D/2, x-W/2,y0,D/2, x-W/2,y1,D/2);
-  for (let z = 0; z <= D; z += 4) p.push(-W/2,y0,z-D/2, -W/2,y1,z-D/2, W/2,y0,z-D/2, W/2,y1,z-D/2);
+  for (let x = 0; x <= W; x += 3) p.push(x-W/2,y0,-D/2, x-W/2,y1,-D/2, x-W/2,y0,D/2, x-W/2,y1,D/2);
+  for (let z = 0; z <= D; z += 3.25) p.push(-W/2,y0,z-D/2, -W/2,y1,z-D/2, W/2,y0,z-D/2, W/2,y1,z-D/2);
   const g = new THREE.BufferGeometry();
   g.setAttribute('position', new THREE.Float32BufferAttribute(p, 3));
   return g;
 }
 
 const levels = [];
+const BAND_LEVELS = [1, 4, 7];          // bandeaux sombres horizontaux (comme sur la perspective)
 function makeLevel(L) {
   const g = new THREE.Group();
   g.position.y = L * H;
-  const slabMat = new THREE.MeshStandardMaterial({ color: 0xeef1f5, roughness: 0.75, transparent: true });
-  const slab = new THREE.Mesh(new THREE.BoxGeometry(W + 0.8, 0.35, D + 0.8), slabMat);
-  slab.position.y = 0.175; slab.castShadow = slab.receiveShadow = true;
-  const gh = H - 0.35;
-  const glassMat = new THREE.MeshStandardMaterial({ color: glassColor(L), roughness: 0.1, metalness: 0.3, transparent: true, opacity: GLASS_OP, emissive: 0x2c519b, emissiveIntensity: 0, depthWrite: false });
-  const glass = new THREE.Mesh(new THREE.BoxGeometry(W, gh, D), glassMat);
-  glass.position.y = 0.35 + gh / 2; glass.userData.level = L;
-  const lineMat = new THREE.LineBasicMaterial({ color: 0x4b5b70, transparent: true, opacity: LINE_OP });
-  const lines = new THREE.LineSegments(facadeLines(0.35, H), lineMat);
-  g.add(slab, glass, lines);
-  if (L === 0) { // auvent d'entrée
-    const canopy = new THREE.Mesh(new THREE.BoxGeometry(10, 0.3, 3.2), new THREE.MeshStandardMaterial({ color: 0x1f3b73 }));
-    canopy.position.set(0, 3.1, D / 2 + 1.6); canopy.castShadow = true; g.add(canopy);
+  const band = BAND_LEVELS.includes(L);
+  const extras = [];
+  const slabMat = new THREE.MeshStandardMaterial({ color: band ? 0x2b2826 : 0xeef1f5, roughness: band ? 0.6 : 0.75, transparent: true });
+  const st = band ? 0.6 : 0.35, over = band ? 2.0 : 0.6;
+  const slab = new THREE.Mesh(new THREE.BoxGeometry(W + over, st, D + over), slabMat);
+  slab.position.y = st / 2; slab.castShadow = slab.receiveShadow = true;
+  g.add(slab);
+  if (band) { // filet LED sous le bandeau
+    const ledMat = new THREE.MeshBasicMaterial({ color: 0xf3f8ff, transparent: true });
+    const p = 0.08;
+    [[W + over, p, p, 0, -0.02, (D + over) / 2 - 0.05], [W + over, p, p, 0, -0.02, -(D + over) / 2 + 0.05],
+     [p, p, D + over, (W + over) / 2 - 0.05, -0.02, 0], [p, p, D + over, -(W + over) / 2 + 0.05, -0.02, 0]].forEach(([a, b, c, x, y, z]) => {
+      const m = new THREE.Mesh(new THREE.BoxGeometry(a, b, c), ledMat); m.position.set(x, y, z); g.add(m);
+    });
+    extras.push({ mat: ledMat, base: 1 });
+  }
+  const base = st;
+  const gh = H - base;
+  const inset = L === 0 ? 1.4 : 0;     // rez-de-chaussée vitré en retrait
+  const glassMat = new THREE.MeshStandardMaterial({ color: glassColor(L), roughness: 0.08, metalness: 0.35, transparent: true, opacity: GLASS_OP, emissive: 0x2c519b, emissiveIntensity: 0, depthWrite: false });
+  const glass = new THREE.Mesh(new THREE.BoxGeometry(W - inset * 2, gh, D - inset * 2), glassMat);
+  glass.position.y = base + gh / 2; glass.userData.level = L;
+  const lineMat = new THREE.LineBasicMaterial({ color: 0x27303c, transparent: true, opacity: LINE_OP });
+  const lines = new THREE.LineSegments(facadeLines(base, H), lineMat);
+  if (inset) lines.scale.set((W - inset * 2) / W, 1, (D - inset * 2) / D);
+  g.add(glass, lines);
+  if (L === 0) { // mur d'accent couleur brique + poteaux
+    const brickMat = new THREE.MeshStandardMaterial({ color: 0x7b4a36, roughness: 0.85, transparent: true });
+    const wall = new THREE.Mesh(new THREE.BoxGeometry(0.5, H - 0.1, 7), brickMat);
+    wall.position.set(-W / 2 + inset + 0.25, H / 2, D / 2 - inset - 3.5); wall.castShadow = true; g.add(wall);
+    const wall2 = new THREE.Mesh(new THREE.BoxGeometry(3.2, H - 0.1, 0.5), brickMat);
+    wall2.position.set(-W / 2 + inset + 1.6, H / 2, D / 2 - inset + 0.25); g.add(wall2);
+    extras.push({ mat: brickMat, base: 1 });
+    const postMat = new THREE.MeshStandardMaterial({ color: 0x2b2826, transparent: true });
+    for (let x = -W / 2 + 4; x < W / 2; x += 5) [D / 2 - 0.2, -D / 2 + 0.2].forEach(z => {
+      const p = new THREE.Mesh(new THREE.BoxGeometry(0.35, H, 0.35), postMat); p.position.set(x, H / 2, z); g.add(p);
+    });
+    extras.push({ mat: postMat, base: 1 });
+  }
+  if ([2, 3, 5, 6, 7].includes(L)) { // balcons à garde-corps vitré sur la façade principale
+    const balMat = new THREE.MeshStandardMaterial({ color: 0xdfe9f2, roughness: 0.1, transparent: true, opacity: 0.45, depthWrite: false });
+    const deckMat = new THREE.MeshStandardMaterial({ color: 0xe9ecef, transparent: true });
+    const spans = { 2: [[-8, 6]], 3: [[2, 10]], 5: [[-10, -2]], 6: [[0, 8]], 7: [[-10, 10]] }[L];
+    spans.forEach(([x0, x1]) => {
+      const w = x1 - x0, cx = (x0 + x1) / 2;
+      const deck = new THREE.Mesh(new THREE.BoxGeometry(w, 0.15, 0.4), deckMat); deck.position.set(cx, 0.3, D / 2 + 0.2); deck.castShadow = true;
+      const rail = new THREE.Mesh(new THREE.BoxGeometry(w, 1.1, 0.06), balMat); rail.position.set(cx, 0.95, D / 2 + 0.36);
+      g.add(deck, rail);
+    });
+    extras.push({ mat: balMat, base: 0.45 }, { mat: deckMat, base: 1 });
   }
   bld.add(g);
-  const lv = { L, g, slab, glass, lines, slabMat, glassMat, lineMat, baseY: L * H, cur: { lift: 0, g: GLASS_OP, s: 1, l: LINE_OP } };
+  const lv = { L, g, slab, glass, lines, slabMat, glassMat, lineMat, extras, baseY: L * H, cur: { lift: 0, g: GLASS_OP, s: 1, l: LINE_OP } };
   levels.push(lv);
 }
 for (let L = 0; L < BUILDING.levels; L++) makeLevel(L);
 
-// Toit (traité comme un niveau sans vitrage)
+// Toit : acrotère sombre
 (() => {
   const g = new THREE.Group(); g.position.y = BUILDING.levels * H;
-  const slabMat = new THREE.MeshStandardMaterial({ color: 0xe2e7ed, roughness: 0.8, transparent: true });
-  const slab = new THREE.Mesh(new THREE.BoxGeometry(W + 0.8, 0.5, D + 0.8), slabMat);
-  slab.position.y = 0.25; slab.castShadow = true;
-  const tech = new THREE.Mesh(new THREE.BoxGeometry(8, 2.4, 6), slabMat);
-  tech.position.set(-4, 1.7, 0); tech.castShadow = true;
-  const lineMat = new THREE.LineBasicMaterial({ color: 0x4b5b70, transparent: true, opacity: LINE_OP });
-  const lines = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(W + 0.8, 1.1, D + 0.8)), lineMat);
-  lines.position.y = 0.55;
-  g.add(slab, tech, lines);
+  const slabMat = new THREE.MeshStandardMaterial({ color: 0x2b2826, roughness: 0.7, transparent: true });
+  const slab = new THREE.Mesh(new THREE.BoxGeometry(W + 2.0, 0.7, D + 2.0), slabMat);
+  slab.position.y = 0.35; slab.castShadow = true;
+  const lineMat = new THREE.LineBasicMaterial({ color: 0x1d1b1a, transparent: true, opacity: LINE_OP });
+  const lines = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(W + 2.0, 0.7, D + 2.0)), lineMat);
+  lines.position.y = 0.35;
+  g.add(slab, lines);
   bld.add(g);
-  levels.push({ L: BUILDING.levels, roof: true, g, slab, glass: null, lines, slabMat, glassMat: null, lineMat, baseY: BUILDING.levels * H, cur: { lift: 0, g: 0, s: 1, l: LINE_OP } });
+  levels.push({ L: BUILDING.levels, roof: true, g, slab, glass: null, lines, slabMat, glassMat: null, lineMat, extras: [], baseY: BUILDING.levels * H, cur: { lift: 0, g: 0, s: 1, l: LINE_OP } });
 })();
+
+// Brise-soleil verticaux bleu ardoise, par groupes d'étages entre les bandeaux
+const finMat = new THREE.MeshStandardMaterial({ color: 0x3b4e6c, roughness: 0.55, metalness: 0.35, transparent: true, opacity: 1 });
+const finGroups = [[1, 4], [4, 7], [7, 8]];
+const finData = [];
+finGroups.forEach(([a, b]) => {
+  const y0 = a * H + 0.6, y1 = b * H, h = y1 - y0, cy = (y0 + y1) / 2;
+  for (let x = -W / 2 + 0.75; x <= W / 2 - 0.5; x += 1.5) { finData.push([x, cy, D / 2 + 0.45, 0, h]); finData.push([x, cy, -D / 2 - 0.45, 0, h]); }
+  for (let z = -D / 2 + 0.35; z <= D / 2 - 0.2; z += 0.7) { finData.push([W / 2 + 0.45, cy, z, 1, h]); finData.push([-W / 2 - 0.45, cy, z, 1, h]); }
+});
+const fins = new THREE.InstancedMesh(new THREE.BoxGeometry(0.12, 1, 0.55), finMat, finData.length);
+const fm = new THREE.Matrix4(), fq0 = new THREE.Quaternion(), fq1 = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.PI / 2);
+finData.forEach(([x, y, z, side, h], i) => { fm.compose(new THREE.Vector3(x, y, z), side ? fq1 : fq0, new THREE.Vector3(1, h, 1)); fins.setMatrixAt(i, fm); });
+fins.castShadow = true;
+bld.add(fins);
+let finFade = 1;
+function applyFins() { finMat.opacity = finFade; fins.visible = finFade > 0.01; }
 
 function applyLevel(lv) {
   lv.g.position.y = lv.baseY + lv.cur.lift;
@@ -458,6 +530,7 @@ function applyLevel(lv) {
   }
   lv.lineMat.opacity = lv.cur.l;
   lv.lines.visible = lv.cur.l > 0.01;
+  (lv.extras || []).forEach(x => { x.mat.opacity = x.base * lv.cur.s; });
 }
 function refreshGlass() { levels.forEach(lv => { if (lv.glassMat) lv.glassMat.color.setHex(glassColor(lv.L)); }); }
 
@@ -549,12 +622,12 @@ function fitDistance(wNeed, hNeed) {
   const tv = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
   return Math.max(hNeed / 2 / tv, wNeed / 2 / (tv * camera.aspect)) * 1.12;
 }
-const BLD_DIR = new THREE.Vector3(0.62, 0.42, 0.66).normalize();
+const BLD_DIR = new THREE.Vector3(0.55, 0.28, 0.79).normalize();
 const FLOOR_DIR = new THREE.Vector3(0, 0.78, 0.63).normalize();
 const FLOOR_DIR_PORTRAIT = new THREE.Vector3(0.6, 0.8, 0).normalize();
 function buildingCam() {
   const t = new THREE.Vector3(0, BUILDING.levels * H / 2, 0);
-  const dist = fitDistance(W + 14, BUILDING.levels * H + 10);
+  const dist = fitDistance(camera.aspect < 1 ? W + D - 8 : W + D + 6, BUILDING.levels * H + 16);
   return { pos: t.clone().addScaledVector(BLD_DIR, dist), target: t, dist };
 }
 function floorCam(L) {
@@ -585,6 +658,7 @@ function setView(L) {
   const cam = L === null ? buildingCam() : floorCam(L);
   const pFrom = camera.position.clone(), tFrom = controls.target.clone();
   const ufTo = L === null ? 0 : 1;
+  const finFrom = finFade, finTo = L === null ? 1 : 0;
 
   controls.enabled = false;
   controls.autoRotate = false;
@@ -600,6 +674,7 @@ function setView(L) {
       camera.position.lerpVectors(pFrom, cam.pos, e);
       controls.target.lerpVectors(tFrom, cam.target, e);
       unitFade = lerp(ufFrom, ufTo, Math.min(1, e * 1.4));
+      finFade = lerp(finFrom, finTo, e); applyFins();
       applyUnitStyles();
     },
     done() {
